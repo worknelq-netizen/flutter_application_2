@@ -1,0 +1,34 @@
+name: calendar_app
+description: A calendar application
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+
+
+  flutter:
+    sdk: flutter
+  http: ^1.1.0
+  shared_preferences: ^2.2.0
+  intl: ^0.18.1
+  data_table_2: ^2.7.2
+  smart_actions_text: ^0.0.1
+  url_launcher: ^6.3.1
+  web_socket_channel: ^3.0.3
+  firebase_core: ^3.0.0
+  firebase_messaging: ^15.2.10
+  flutter_local_notifications: ^20.1.0
+  flutter_websocket_manager_plugin: ^1.0.2
+  flutter_foreground_task: ^8.5.0  # Добавить эту зависимость
+
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
