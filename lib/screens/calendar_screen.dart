@@ -1999,7 +1999,7 @@ SnackBar Asd(context){
         title: Text('График'),
         centerTitle: true,
         elevation: 2,
-           leading: IconButton(  // Добавьте эту секцию
+          leading: IconButton(  // Добавьте эту секцию
         icon: Icon(Icons.arrow_back),
         onPressed: () {
           _showModuleSelectionDialog();

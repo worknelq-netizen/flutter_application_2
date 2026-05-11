@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "437480202480",
+    "project_id": "diplom-a4d02",
+    "storage_bucket": "diplom-a4d02.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:437480202480:android:f3dd288f4dc6f9bae16235",
+        "android_client_info": {
+          "package_name": "com.example.calendar_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC11dd7u4-i_KmDPKefUd0cmOJDibVP2Og"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

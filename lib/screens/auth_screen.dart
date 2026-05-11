@@ -1,9 +1,14 @@
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/globals.dart';
 import '../widgets/module_selection_dialog.dart'; // Импорт диалога
+import 'package:firebase_core/firebase_core.dart';
+import '../firebase_options.dart';
+
+// ...
 
 class AuthScreen extends StatefulWidget {
   @override
@@ -20,6 +25,8 @@ class _AuthScreenState extends State<AuthScreen> {
   void initState() {
     super.initState();
     _checkSavedUser();
+
+
   }
 
   Future<void> _checkSavedUser() async {
@@ -29,13 +36,31 @@ class _AuthScreenState extends State<AuthScreen> {
     final savedSquad = prefs.getString('user_squad');
     Globals.userName = prefs.getString('user_name');
     Globals.userSquad = prefs.getString('user_squad'); 
-    
+
+
+      await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+);
+final _firebase = FirebaseMessaging.instance;
+await _firebase.requestPermission();
+final token = await _firebase.getToken();
+  Globals.token=token;
+    try {
+      final response = await http.get(
+        Uri.parse('http://${Globals.ip_conf}:6767/token_ping?token=${token}&login=${Globals.userName}&squad=${Globals.userSquad}}'),
+        headers: {'Content-Type': 'application/json'},
+      ).timeout(const Duration(seconds: 10));
+    } catch (e) {
+      print('Ошибка загрузки локальных событий: $e');
+    }
     if (savedName != null && savedSquad != null) {
       _showModuleSelection(savedName, savedSquad);
     }
   }
 
   Future<void> _login() async {
+
+
     if (_nameController.text.isEmpty || _squadController.text.isEmpty) {
       setState(() {
         _errorMessage = 'Пожалуйста, заполните все поля';
@@ -62,8 +87,20 @@ class _AuthScreenState extends State<AuthScreen> {
       await prefs.setString('user_squad', data['squad']);
       Globals.userName = _nameController.text;
       Globals.userSquad = data['squad'];
-
+      
+    try {
+      final response = await http.get(
+        Uri.parse('http://${Globals.ip_conf}:6767/token_ping?token=${Globals.token}&login=${Globals.userName}&squad=${Globals.userSquad}}'),
+        headers: {'Content-Type': 'application/json'},
+      ).timeout(const Duration(seconds: 10));
+    } catch (e) {
+      print('Ошибка загрузки локальных событий: $e');
+    }
       _showModuleSelection(_nameController.text, data['squad']);
+
+
+
+
     } catch (e) {
       setState(() {
         _errorMessage = 'Неверный логин или пароль';
@@ -115,9 +152,11 @@ class _AuthScreenState extends State<AuthScreen> {
                     Icon(Icons.calendar_today, size: 80, color: Colors.blue),
                     SizedBox(height: 16),
                     Text(
+                      textAlign: TextAlign.center,
                       'Менеджмент складкого предприятия',
                       style: TextStyle(
                         fontSize: 24,
+                          
                         fontWeight: FontWeight.bold,
                         color: Colors.blue.shade700,
                       ),
