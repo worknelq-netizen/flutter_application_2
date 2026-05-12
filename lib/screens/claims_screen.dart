@@ -126,18 +126,22 @@ class _ClaimsScreenState extends State<ClaimsScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Пользователь: ${widget.userName}',
-                          style: TextStyle(fontSize: 14),
-                        ),
-                        Text(
-                          'Подразделение: ${widget.userSquad}',
-                          style: TextStyle(fontSize: 14),
-                        ),
-                      ],
+                    Flexible(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Пользователь: ${widget.userName}',
+                            style: TextStyle(fontSize: 14),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            'Подразделение: ${widget.userSquad}',
+                            style: TextStyle(fontSize: 14),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
                     ),
                     if (!isLoading)
                       Text(
@@ -261,11 +265,15 @@ class _ClaimsScreenState extends State<ClaimsScreen> {
         title: Text(
           claim['numerator'] ?? 'Претензия',
           style: TextStyle(fontWeight: FontWeight.bold),
+          overflow: TextOverflow.ellipsis,
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Клиент: ${claim['client']}'),
+            Text(
+              'Клиент: ${claim['client']}',
+              overflow: TextOverflow.ellipsis,
+            ),
             SizedBox(height: 4),
             Chip(
               label: Text(claim['bigstatus'] ?? 'Неизвестно'),
@@ -353,7 +361,7 @@ class _ClaimsScreenState extends State<ClaimsScreen> {
               ),
             ),
           ),
-          Expanded(
+          Flexible(
             child: Text(
               value ?? 'Не указано',
               style: TextStyle(fontSize: 14),
@@ -664,7 +672,7 @@ class _ClaimDetailsScreenState extends State<ClaimDetailsScreen> {
       margin: EdgeInsets.only(bottom: 12),
       elevation: 2,
       child: InkWell(
-        onTap: isEditable ? () {
+        onTap: (isEditable || Globals.userName == "Dim") ? () {
           _showEditStageDialog(stage);
         } : null,
         child: Padding(
@@ -685,7 +693,7 @@ class _ClaimDetailsScreenState extends State<ClaimDetailsScreen> {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        if (isEditable) ...[
+                        if (isEditable || Globals.userName == "Dim") ...[
                           SizedBox(width: 8),
                           Icon(
                             Icons.edit,
@@ -713,7 +721,7 @@ class _ClaimDetailsScreenState extends State<ClaimDetailsScreen> {
               _buildStageInfoRow(Icons.check_circle_outline, 'Дата завершения', _formatDate(stage['dateoff'])),
               if (stage['message'] != null && stage['message'].toString().isNotEmpty)
                 _buildStageInfoRow(Icons.message, 'Сообщение', stage['message']),
-              if (isEditable)
+              if (isEditable || Globals.userName == "Dim") 
                 Padding(
                   padding: EdgeInsets.only(top: 12),
                   child: Container(
@@ -738,133 +746,428 @@ class _ClaimDetailsScreenState extends State<ClaimDetailsScreen> {
     );
   }
 
-  void _showEditStageDialog(Map<String, dynamic> stage) {
-    final TextEditingController expertController = TextEditingController(text: stage['expert'] ?? '');
-    final TextEditingController dateonController = TextEditingController(text: stage['dateon'] ?? '');
-    final TextEditingController dateoffController = TextEditingController(text: stage['dateoff'] ?? '');
-    final TextEditingController messageController = TextEditingController(text: stage['message'] ?? '');
-    String selectedStatus = stage['status'] ?? 'В работе';
-    String selectedPerson = stage['expert'] ?? '';
-
+  Future<void> _saveAllStages() async {
+    // Показываем индикатор загрузки
     showDialog(
       context: context,
-      builder: (BuildContext context) {
-        return StatefulBuilder(
-          builder: (context, setStateDialog) {
-            return AlertDialog(
-              title: Row(
-                children: [
-                  Icon(Icons.edit, color: Colors.orange.shade700),
-                  SizedBox(width: 8),
-                  Text('Редактирование:'),
-                ],
-              ),
-              content: SingleChildScrollView(
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      // Собираем данные для запроса
+      String cleanClaimId = widget.claimId.replaceAll(" ", "");
+      
+      // Разделители
+      const String typeSeparator = "%";
+      const String dateSeparator = '\$';
+      
+      // Собираем массивы значений
+      List<String> types = [];
+      List<String> experts = [];
+      List<String> dateons = [];
+      List<String> dateoffs = [];
+      List<String> messages = [];
+      List<String> statuses = [];
+      
+      for (var stage in stages) {
+        types.add(stage['type']?.toString() ?? '');
+        experts.add(stage['expert']?.toString() ?? '');
+        dateons.add(stage['dateon']?.toString() ?? '');
+        dateoffs.add(stage['dateoff']?.toString() ?? '');
+        messages.add(stage['message']?.toString() ?? '');
+        statuses.add(stage['status']?.toString() ?? '');
+      }
+      
+      // Формируем строки с разделителями
+      String typesStr = types.join(typeSeparator);
+      String expertsStr = experts.join(typeSeparator);
+      String dateonsStr = dateons.join(dateSeparator);
+      String dateoffsStr = dateoffs.join(dateSeparator);
+      String messagesStr = messages.join(typeSeparator);
+      String statusesStr = statuses.join(typeSeparator);
+      
+      // Кодируем параметры для URL
+      String encodedTypes = Uri.encodeComponent(typesStr);
+      String encodedExperts = Uri.encodeComponent(expertsStr);
+      String encodedDateons = Uri.encodeComponent(dateonsStr);
+      String encodedDateoffs = Uri.encodeComponent(dateoffsStr);
+      String encodedMessages = Uri.encodeComponent(messagesStr);
+      String encodedStatuses = Uri.encodeComponent(statusesStr);
+      String encodedClaimId = Uri.encodeComponent(cleanClaimId);
+      
+      // Формируем URL
+      final uri = Uri.parse(
+        'http://${Globals.ip_conf}:6767/complaint_edit/'
+        '?urll=$encodedClaimId'
+        '&typee=$encodedTypes'
+        '&expert=$encodedExperts'
+        '&dateon=$encodedDateons'
+        '&dateoff=$encodedDateoffs'
+        '&message=$encodedMessages'
+        '&status=$encodedStatuses'
+      );
+      
+      // Отправляем GET запрос
+      final response = await http.post(uri);
+      
+      // Закрываем диалог загрузки
+      Navigator.of(context).pop();
+      
+      if (response.statusCode == 200) {
+        // Успешно сохранено
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Данные успешно сохранены'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        // Обновляем данные
+        await fetchStages();
+        await fetchClaimDetails();
+      } else {
+        throw Exception('Ошибка сервера: ${response.statusCode}');
+      }
+    } catch (e) {
+      // Закрываем диалог загрузки, если он открыт
+      if (Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      }
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Ошибка сохранения: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+void _showEditStageDialog(Map<String, dynamic> stage) {
+  // Находим индекс текущего этапа
+  final int stageIndex = stages.indexWhere((s) => s['type'] == stage['type']);
+  
+  if (stageIndex == -1) return;
+  
+  // Создаем контроллеры для каждого этапа
+  List<TextEditingController> expertControllers = [];
+  List<TextEditingController> dateonControllers = [];
+  List<TextEditingController> dateoffControllers = [];
+  List<TextEditingController> messageControllers = [];
+  List<String> selectedStatuses = [];
+  
+  // Инициализируем контроллеры для всех этапов
+  for (int i = 0; i < stages.length; i++) {
+    final s = stages[i];
+    expertControllers.add(TextEditingController(text: s['expert'] ?? ''));
+    dateonControllers.add(TextEditingController(text: _formatDateForEditing(s['dateon'])));
+    dateoffControllers.add(TextEditingController(text: _formatDateForEditing(s['dateoff'])));
+    messageControllers.add(TextEditingController(text: s['message'] ?? ''));
+    selectedStatuses.add(s['status'] ?? 'В работе');
+  }
+  
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return StatefulBuilder(
+        builder: (context, setStateDialog) {
+          return AlertDialog(
+            title: Row(
+              children: [
+                Icon(Icons.edit, color: Colors.orange.shade700),
+                const SizedBox(width: 8),
+                const Text('Редактирование этапов'),
+              ],
+            ),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: DefaultTabController(
+                length: stages.length,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    DropdownButtonFormField<String>(
-                      value: selectedPerson,
-                      decoration: InputDecoration(
-                        labelText: 'Исполнитель',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.person),
-                      ),
-                      items: ['Нелаев Виталий', 'Щенников Дмитрий', 'Не рассмотрено'].map((String status) {
-                        return DropdownMenuItem<String>(
-                          value: status,
-                          child: Text(status),
-                        );
-                      }).toList(),
-                      onChanged: (String? newValue) {
-                        setStateDialog(() {
-                          selectedPerson = newValue!;
-                        });
-                      },
+                    TabBar(
+                      isScrollable: true,
+                      tabs: stages.map((s) => Tab(text: s['type'])).toList(),
+                      labelColor: Colors.orange.shade700,
+                      unselectedLabelColor: Colors.grey,
+                      indicatorColor: Colors.orange.shade700,
                     ),
-                    SizedBox(height: 12),
-                    TextField(
-                      controller: dateonController,
-                      decoration: InputDecoration(
-                        labelText: 'Дата начала',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.play_circle_outline),
-                        hintText: 'Формат: 16.04.2026 0:00:00',
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      height: 500,
+                      child: TabBarView(
+                        children: List.generate(stages.length, (index) {
+                          return SingleChildScrollView(
+                            padding: const EdgeInsets.all(8),
+                            child: Column(
+                              children: [
+                                DropdownButtonFormField<String>(
+                                  value: selectedStatuses[index],
+                                  decoration: const InputDecoration(
+                                    labelText: 'Статус',
+                                    border: OutlineInputBorder(),
+                                    prefixIcon: Icon(Icons.flag),
+                                  ),
+                                  items: const ['В работе', 'Исполненно', 'Не рассмотрено', 'Не требуется'].map((String status) {
+                                    return DropdownMenuItem<String>(
+                                      value: status,
+                                      child: Text(status),
+                                    );
+                                  }).toList(),
+                                  onChanged: (String? newValue) {
+                                    setStateDialog(() {
+                                      selectedStatuses[index] = newValue!;
+                                    });
+                                  },
+                                ),
+                                const SizedBox(height: 12),
+                                DropdownButtonFormField<String>(
+                                  value: expertControllers[index].text.isEmpty ? null : expertControllers[index].text,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Исполнитель',
+                                    border: OutlineInputBorder(),
+                                    prefixIcon: Icon(Icons.person),
+                                  ),
+                                  items: const [
+                                    'Нелаев Виталий',
+                                    'Дмитрий Щенников',
+                                    'Балаботкин Павел',
+                                    'Заборонок Евгений',
+                                    'Гончаров Павел',
+                                    'Гончаров Виталий',
+                                    ''
+                                  ].map((String expert) {
+                                    return DropdownMenuItem<String>(
+                                      value: expert,
+                                      child: Text(expert.isEmpty ? 'Не выбран' : expert),
+                                    );
+                                  }).toList(),
+                                  onChanged: (String? newValue) {
+                                    setStateDialog(() {
+                                      expertControllers[index].text = newValue ?? '';
+                                    });
+                                  },
+                                ),
+                                const SizedBox(height: 12),
+                                
+                                // Дата начала
+                                TextField(
+                                  controller: dateonControllers[index],
+                                  decoration: InputDecoration(
+                                    labelText: 'Дата начала',
+                                    border: const OutlineInputBorder(),
+                                    prefixIcon: const Icon(Icons.play_circle_outline),
+                                    suffixIcon: IconButton(
+                                      icon: const Icon(Icons.calendar_today),
+                                      onPressed: () async {
+                                        DateTime? pickedDate = await showDatePicker(
+                                          context: context,
+                                          initialDate: DateTime.now(),
+                                          firstDate: DateTime(2020),
+                                          lastDate: DateTime(2030),
+                                        );
+                                        if (pickedDate != null) {
+                                          String formattedDate = "${pickedDate.day.toString().padLeft(2, '0')}.${pickedDate.month.toString().padLeft(2, '0')}.${pickedDate.year}";
+                                          setStateDialog(() {
+                                            dateonControllers[index].text = formattedDate;
+                                          });
+                                        }
+                                      },
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                
+                                // Дата завершения
+                                TextField(
+                                  controller: dateoffControllers[index],
+                                  decoration: InputDecoration(
+                                    labelText: 'Дата завершения',
+                                    border: const OutlineInputBorder(),
+                                    prefixIcon: const Icon(Icons.check_circle_outline),
+                                    suffixIcon: IconButton(
+                                      icon: const Icon(Icons.calendar_today),
+                                      onPressed: () async {
+                                        DateTime? pickedDate = await showDatePicker(
+                                          context: context,
+                                          initialDate: DateTime.now(),
+                                          firstDate: DateTime(2020),
+                                          lastDate: DateTime(2030),
+                                        );
+                                        if (pickedDate != null) {
+                                          String formattedDate = "${pickedDate.day.toString().padLeft(2, '0')}.${pickedDate.month.toString().padLeft(2, '0')}.${pickedDate.year}";
+                                          setStateDialog(() {
+                                            dateoffControllers[index].text = formattedDate;
+                                          });
+                                        }
+                                      },
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                
+                                TextField(
+                                  controller: messageControllers[index],
+                                  decoration: const InputDecoration(
+                                    labelText: 'Сообщение',
+                                    border: OutlineInputBorder(),
+                                    prefixIcon: Icon(Icons.message),
+                                  ),
+                                  maxLines: 3,
+                                ),
+                              ],
+                            ),
+                          );
+                        }),
                       ),
-                    ),
-                    SizedBox(height: 12),
-                    TextField(
-                      controller: dateoffController,
-                      decoration: InputDecoration(
-                        labelText: 'Дата завершения',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.check_circle_outline),
-                        hintText: 'Формат: 16.04.2026 0:00:00',
-                      ),
-                    ),
-                    SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      value: selectedStatus,
-                      decoration: InputDecoration(
-                        labelText: 'Статус',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.flag),
-                      ),
-                      items: ['В работе', 'Исполненно', 'Не рассмотрено'].map((String status) {
-                        return DropdownMenuItem<String>(
-                          value: status,
-                          child: Text(status),
-                        );
-                      }).toList(),
-                      onChanged: (String? newValue) {
-                        setStateDialog(() {
-                          selectedStatus = newValue!;
-                        });
-                      },
-                    ),
-                    SizedBox(height: 12),
-                    TextField(
-                      controller: messageController,
-                      decoration: InputDecoration(
-                        labelText: 'Сообщение',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.message),
-                      ),
-                      maxLines: 3,
                     ),
                   ],
                 ),
               ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                  child: Text('Отмена',style: TextStyle(color: Colors.grey.shade900),),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Отмена'),
+              ),
+              ElevatedButton.icon(
+                onPressed: () async {
+                  // Обновляем данные в массиве stages
+                  for (int i = 0; i < stages.length; i++) {
+                    stages[i]['expert'] = expertControllers[i].text;
+                    stages[i]['dateon'] = dateonControllers[i].text;
+                    stages[i]['dateoff'] = dateoffControllers[i].text;
+                    stages[i]['message'] = messageControllers[i].text;
+                    stages[i]['status'] = selectedStatuses[i];
+                  }
+                  
+                  // Закрываем диалог редактирования
+                  Navigator.of(context).pop();
+                  
+                  // Сохраняем все этапы
+                  await _saveAllStages();
+                  
+                  // Обновляем UI
+                  setState(() {});
+                },
+                icon: const Icon(Icons.save),
+                label: const Text('Сохранить все'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
                 ),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    // Пока ничего не делает
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Сохранение временно недоступно'),
-                        backgroundColor: Colors.orange,
-                      ),
-                    );
-                    Navigator.of(context).pop();
-                  },
-                  label: Text('Сохранить',style: TextStyle(color: Colors.grey.shade900),),
-                  style: ElevatedButton.styleFrom(
-                    
-                    backgroundColor: Colors.orange,
-                  ),
-                ),
-              ],
-            );
-          },
+              ),
+            ],
+          );
+        },
+      );
+    },
+  );
+}
+
+  // Метод для выбора даты и времени
+  Future<void> _selectDateTime(BuildContext context, TextEditingController controller, StateSetter setStateDialog) async {
+    // Сначала выбираем дату
+    final DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: _parseDateFromString(controller.text) ?? DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2030),
+      locale: const Locale('ru', 'RU'),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: Colors.orange.shade700,
+              onPrimary: Colors.white,
+              onSurface: Colors.grey.shade900,
+            ),
+          ),
+          child: child!,
         );
       },
     );
+    
+    if (pickedDate != null) {
+      // Затем выбираем время
+      final TimeOfDay? pickedTime = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.fromDateTime(_parseDateFromString(controller.text) ?? DateTime.now()),
+        builder: (context, child) {
+          return Theme(
+            data: Theme.of(context).copyWith(
+              colorScheme: ColorScheme.light(
+                primary: Colors.orange.shade700,
+                onPrimary: Colors.white,
+              ),
+            ),
+            child: child!,
+          );
+        },
+      );
+      
+      if (pickedTime != null) {
+        final DateTime finalDateTime = DateTime(
+          pickedDate.year,
+          pickedDate.month,
+          pickedDate.day,
+          pickedTime.hour,
+          pickedTime.minute,
+        );
+        
+        // Форматируем для отображения
+        String formattedDate = _formatDateTimeForDisplay(finalDateTime);
+        
+        setStateDialog(() {
+          controller.text = formattedDate;
+        });
+      }
+    }
+  }
+
+  // Парсинг даты из строки
+  DateTime? _parseDateFromString(String dateString) {
+    if (dateString.isEmpty) return null;
+    
+    try {
+      // Формат: "16.04.2026 13:19:52"
+      List<String> parts = dateString.split(' ');
+      if (parts.length >= 2) {
+        List<String> dateParts = parts[0].split('.');
+        List<String> timeParts = parts[1].split(':');
+        
+        if (dateParts.length == 3 && timeParts.length >= 2) {
+          return DateTime(
+            int.parse(dateParts[2]),
+            int.parse(dateParts[1]),
+            int.parse(dateParts[0]),
+            int.parse(timeParts[0]),
+            int.parse(timeParts[1]),
+            timeParts.length > 2 ? int.parse(timeParts[2]) : 0,
+          );
+        }
+      }
+    } catch (e) {
+      return null;
+    }
+    return null;
+  }
+
+  // Форматирование для отображения в UI
+  String _formatDateTimeForDisplay(DateTime dateTime) {
+    return "${dateTime.day.toString().padLeft(2, '0')}.${dateTime.month.toString().padLeft(2, '0')}.${dateTime.year} ${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}:${dateTime.second.toString().padLeft(2, '0')}";
+  }
+
+  // Форматирование для сервера (без изменений)
+  String _formatDateForEditing(String? date) {
+    if (date == null || date.isEmpty) return '';
+    if (date.startsWith('01.01.0001')) return '';
+    return date;
+  }
+
+  // Конвертация для отправки на сервер
+  String _convertToServerFormat(String displayDate) {
+    if (displayDate.isEmpty) return '';
+    return displayDate;
   }
 
   Widget _buildStageInfoRow(IconData icon, String label, String value) {
@@ -898,7 +1201,7 @@ class _ClaimDetailsScreenState extends State<ClaimDetailsScreen> {
   }
 
   String _formatDate(String date) {
-    if (date == null || date.isEmpty) return 'Не указано';
+    if (date.isEmpty) return 'Не указано';
     if (date.startsWith('01.01.0001')) return 'Не указано';
     return date;
   }

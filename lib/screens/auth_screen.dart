@@ -47,7 +47,7 @@ final token = await _firebase.getToken();
   Globals.token=token;
     try {
       final response = await http.get(
-        Uri.parse('http://${Globals.ip_conf}:6767/token_ping?token=${token}&login=${Globals.userName}&squad=${Globals.userSquad}}'),
+        Uri.parse('http://${Globals.ip_conf}:6767/token_ping?token=${token}&login=${Globals.userName}&squad=${Globals.userSquad}'),
         headers: {'Content-Type': 'application/json'},
       ).timeout(const Duration(seconds: 10));
     } catch (e) {
@@ -90,7 +90,7 @@ final token = await _firebase.getToken();
       
     try {
       final response = await http.get(
-        Uri.parse('http://${Globals.ip_conf}:6767/token_ping?token=${Globals.token}&login=${Globals.userName}&squad=${Globals.userSquad}}'),
+        Uri.parse('http://${Globals.ip_conf}:6767/token_ping?token=${Globals.token}&login=${Globals.userName}&squad=${Globals.userSquad}'),
         headers: {'Content-Type': 'application/json'},
       ).timeout(const Duration(seconds: 10));
     } catch (e) {
