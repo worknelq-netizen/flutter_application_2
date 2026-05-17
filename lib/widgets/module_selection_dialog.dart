@@ -83,7 +83,7 @@ class ModuleSelectionDialog extends StatelessWidget {
               context,
               icon: Icons.trending_up,
               title: 'Продажи',
-              description: 'Аналитика и управление продажами',
+              description: 'Аналитика продаж',
               color: Colors.green,
               onTap: () {
                 Navigator.pushReplacement(

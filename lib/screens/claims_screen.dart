@@ -20,10 +20,15 @@ class ClaimsScreen extends StatefulWidget {
 
 class _ClaimsScreenState extends State<ClaimsScreen> {
   List<dynamic> claims = [];
+  List<dynamic> filteredClaims = [];
   bool isLoading = true;
   String? errorMessage;
   bool isPersonal = true;
   late Uri uri;
+  
+  // Фильтр по статусу
+  String selectedStatusFilter = 'Все';
+  final List<String> statusFilters = ['Все', 'Исполненно', 'В работе', 'Не рассмотрено'];
 
   @override
   void initState() {
@@ -54,6 +59,7 @@ class _ClaimsScreenState extends State<ClaimsScreen> {
         final List<dynamic> data = json.decode(response.body);
         setState(() {
           claims = data;
+          _applyFilter(); // Применяем фильтр после загрузки
           isLoading = false;
         });
       } else {
@@ -67,6 +73,26 @@ class _ClaimsScreenState extends State<ClaimsScreen> {
         errorMessage = 'Ошибка соединения: $e';
         isLoading = false;
       });
+    }
+  }
+
+  // Применение фильтра по статусу
+  void _applyFilter() {
+    if (selectedStatusFilter == 'Все') {
+      filteredClaims = List.from(claims);
+    } else {
+      filteredClaims = claims.where((claim) {
+        return claim['bigstatus'] == selectedStatusFilter;
+      }).toList();
+    }
+    setState(() {});
+  }
+
+  // Изменение фильтра
+  void _changeStatusFilter(String? newFilter) {
+    if (newFilter != null && newFilter != selectedStatusFilter) {
+      selectedStatusFilter = newFilter;
+      _applyFilter();
     }
   }
 
@@ -145,7 +171,7 @@ class _ClaimsScreenState extends State<ClaimsScreen> {
                     ),
                     if (!isLoading)
                       Text(
-                        'Всего: ${claims.length}',
+                        'Всего: ${claims.length} | Отфильтровано: ${filteredClaims.length}',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           color: Colors.orange.shade700,
@@ -161,33 +187,107 @@ class _ClaimsScreenState extends State<ClaimsScreen> {
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: Colors.orange.shade200),
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  child: Column(
                     children: [
                       Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Icon(
-                            isPersonal ? Icons.person : Icons.people,
-                            color: Colors.orange.shade700,
-                            size: 20,
+                          Row(
+                            children: [
+                              Icon(
+                                isPersonal ? Icons.person : Icons.people,
+                                color: Colors.orange.shade700,
+                                size: 20,
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                isPersonal ? 'Персональные' : 'Общие',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.orange.shade700,
+                                ),
+                              ),
+                            ],
                           ),
-                          SizedBox(width: 8),
-                          Text(
-                            isPersonal ? 'Персональные' : 'Общие',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.orange.shade700,
-                            ),
+                          Switch(
+                            value: isPersonal,
+                            onChanged: toggleClaimsType,
+                            activeColor: Colors.orange,
+                            activeTrackColor: Colors.orange.shade100,
+                            inactiveThumbColor: Colors.grey,
+                            inactiveTrackColor: Colors.grey.shade300,
                           ),
                         ],
                       ),
-                      Switch(
-                        value: isPersonal,
-                        onChanged: toggleClaimsType,
-                        activeColor: Colors.orange,
-                        activeTrackColor: Colors.orange.shade100,
-                        inactiveThumbColor: Colors.grey,
-                        inactiveTrackColor: Colors.grey.shade300,
+                      SizedBox(height: 12),
+                      // Фильтр по статусу
+                      Container(
+                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.grey.shade200),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.filter_list,
+                              size: 20,
+                              color: Colors.orange.shade700,
+                            ),
+                            SizedBox(width: 8),
+                            Text(
+                              'Фильтр по статусу:',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w500,
+                                color: Colors.grey.shade700,
+                              ),
+                            ),
+                            SizedBox(width: 12),
+                            Expanded(
+                              child: DropdownButton<String>(
+                                value: selectedStatusFilter,
+                                isExpanded: true,
+                                underline: SizedBox(),
+                                items: statusFilters.map((String status) {
+                                  return DropdownMenuItem<String>(
+                                    value: status,
+                                    child: Row(
+                                      children: [
+                                        _getStatusIcon(status),
+                                        SizedBox(width: 8),
+                                        Text(status),
+                                        if (status != 'Все') ...[
+                                          SizedBox(width: 8),
+                                          Container(
+                                            padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: _getStatusColor(status).withOpacity(0.2),
+                                              borderRadius: BorderRadius.circular(12),
+                                            ),
+                                            child: Text(
+                                              _getStatusCount(status).toString(),
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.bold,
+                                                color: _getStatusColor(status),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  );
+                                }).toList(),
+                                onChanged: _changeStatusFilter,
+                                icon: Icon(
+                                  Icons.arrow_drop_down,
+                                  color: Colors.orange.shade700,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -214,17 +314,35 @@ class _ClaimsScreenState extends State<ClaimsScreen> {
                           ],
                         ),
                       )
-                    : claims.isEmpty
+                    : filteredClaims.isEmpty
                         ? Center(
-                            child: Text('Нет претензий'),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.filter_alt_off, size: 64, color: Colors.grey),
+                                SizedBox(height: 16),
+                                Text(
+                                  selectedStatusFilter == 'Все' 
+                                    ? 'Нет претензий' 
+                                    : 'Нет претензий со статусом "$selectedStatusFilter"',
+                                  style: TextStyle(fontSize: 16, color: Colors.grey),
+                                ),
+                                if (selectedStatusFilter != 'Все')
+                                  TextButton.icon(
+                                    onPressed: () => _changeStatusFilter('Все'),
+                                    icon: Icon(Icons.clear),
+                                    label: Text('Сбросить фильтр'),
+                                  ),
+                              ],
+                            ),
                           )
                         : RefreshIndicator(
                             onRefresh: refreshClaims,
                             child: ListView.builder(
                               padding: EdgeInsets.all(8),
-                              itemCount: claims.length,
+                              itemCount: filteredClaims.length,
                               itemBuilder: (context, index) {
-                                final claim = claims[index];
+                                final claim = filteredClaims[index];
                                 return _buildClaimCard(claim);
                               },
                             ),
@@ -233,6 +351,44 @@ class _ClaimsScreenState extends State<ClaimsScreen> {
         ],
       ),
     );
+  }
+
+  // Получение иконки для статуса
+  Widget _getStatusIcon(String status) {
+    IconData iconData;
+    switch (status) {
+      case 'Исполненно':
+        iconData = Icons.check_circle;
+        break;
+      case 'В работе':
+        iconData = Icons.pending;
+        break;
+      case 'Не рассмотрено':
+        iconData = Icons.error;
+        break;
+      default:
+        iconData = Icons.filter_list;
+    }
+    return Icon(iconData, size: 18, color: _getStatusColor(status));
+  }
+
+  // Получение цвета для статуса
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'Исполненно':
+        return Colors.green;
+      case 'В работе':
+        return Colors.orange;
+      case 'Не рассмотрено':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  // Подсчет количества претензий с определенным статусом
+  int _getStatusCount(String status) {
+    return claims.where((claim) => claim['bigstatus'] == status).length;
   }
 
   Widget _buildClaimCard(dynamic claim) {
@@ -875,7 +1031,7 @@ void _showEditStageDialog(Map<String, dynamic> stage) {
               children: [
                 Icon(Icons.edit, color: Colors.orange.shade700),
                 const SizedBox(width: 8),
-                const Text('Редактирование этапов'),
+                const Text('Редактирование'),
               ],
             ),
             content: SizedBox(
