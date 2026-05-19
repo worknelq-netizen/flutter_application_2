@@ -41,7 +41,7 @@ class MyApp extends StatelessWidget {
   
   @override
   Widget build(BuildContext context) {
-
+    if (Globals.userName != null && Globals.userSquad != null){
     return MaterialApp(
       title: '',
       theme: ThemeData(
@@ -49,8 +49,19 @@ class MyApp extends StatelessWidget {
         visualDensity: VisualDensity.adaptivePlatformDensity,
         useMaterial3: true,
       ),
-      home: HomeScreen(userName: 'Reg', userSquad: '',),
+      home: HomeScreen(userName: Globals.userName!, userSquad: Globals.userSquad!),
     );
  
   }
+  else{
+       return MaterialApp(
+      title: '',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        visualDensity: VisualDensity.adaptivePlatformDensity,
+        useMaterial3: true,
+      ),
+      home: AuthScreen(),
+    ); 
+  }}
 }

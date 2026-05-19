@@ -1324,6 +1324,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
         DataColumn(
           label: Container(
             width: lenSquad,
+            height: 600,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -1435,6 +1436,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
               },
               child: Container(
                 width: lenSquad,
+          
                 constraints: BoxConstraints(minHeight: 70),
                 padding: EdgeInsets.symmetric(vertical: 4),
                 child: SingleChildScrollView(
@@ -1522,7 +1524,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
         columnSpacing: 8,
         horizontalMargin: 3,
         headingRowHeight: 80,
-        dataRowHeight: 100,
+        dataRowHeight: 118,
         border: TableBorder.all(
           color: Colors.grey.shade300,
           width: 0.5,
