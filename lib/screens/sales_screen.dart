@@ -1,5 +1,8 @@
+import 'package:calendar_app/screens/auth_screen.dart';
+import 'package:calendar_app/widgets/module_selection_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SalesScreen extends StatefulWidget {
   final String userName;
@@ -33,7 +36,48 @@ class _SalesScreenState extends State<SalesScreen> {
         title: const Text('Статистика продаж'),
         backgroundColor: Colors.green,
         elevation: 0,
+                  leading: IconButton(  // Добавьте эту секцию
+        icon: Icon(Icons.apps_rounded),
+        onPressed: () {
+          _showModuleSelectionDialog();
+        },
+        tooltip: 'Вернуться в меню',
+      ),
+
+
+
+
         actions: [
+                    PopupMenuButton<String>(
+            icon: Icon(Icons.account_circle),
+            onSelected: (value) {
+              if (value == 'logout') _logout();
+            },
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: 'info',
+                enabled: false,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(widget.userName, style: TextStyle(fontWeight: FontWeight.bold)),
+                    Text('Бригада: ${widget.userSquad}', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  ],
+                ),
+              ),
+              PopupMenuDivider(),
+              PopupMenuItem(
+                value: 'logout',
+                child: Row(
+                  children: [
+                    Icon(Icons.exit_to_app, color: Colors.red),
+                    SizedBox(width: 8),
+                    Text('Выйти'),
+                  ],
+                ),
+              ),
+            ],
+          ),
           IconButton(
             icon: const Icon(Icons.filter_alt),
             onPressed: () => _showFilterDialog(),
@@ -1538,4 +1582,30 @@ class _SalesScreenState extends State<SalesScreen> {
     if (managerName == 'Елена М.') return 'Шкаф-купе (21 шт.)';
     return 'Фурнитура (156 шт.)';
   }
+  
+void _showModuleSelectionDialog() {
+  // Очищаем navigation stack и показываем диалог
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return ModuleSelectionDialog(
+          userName: widget.userName,
+          userSquad: widget.userSquad,
+        );
+      },
+    );
+  });
 }
+
+    Future<void> _logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('user_name');
+    await prefs.remove('user_squad');
+    
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => AuthScreen()),
+    );
+  }}

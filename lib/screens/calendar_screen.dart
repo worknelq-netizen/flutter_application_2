@@ -2000,7 +2000,7 @@ SnackBar Asd(context){
         centerTitle: true,
         elevation: 2,
           leading: IconButton(  // Добавьте эту секцию
-        icon: Icon(Icons.arrow_back),
+        icon: Icon(Icons.apps_rounded),
         onPressed: () {
           _showModuleSelectionDialog();
         },

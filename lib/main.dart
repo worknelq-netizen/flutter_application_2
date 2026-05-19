@@ -1,5 +1,6 @@
 import 'package:calendar_app/firebase_options.dart';
 import 'package:calendar_app/models/globals.dart';
+import 'package:calendar_app/screens/home_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -48,7 +49,7 @@ class MyApp extends StatelessWidget {
         visualDensity: VisualDensity.adaptivePlatformDensity,
         useMaterial3: true,
       ),
-      home: AuthScreen(),
+      home: HomeScreen(userName: 'Reg', userSquad: '',),
     );
  
   }
