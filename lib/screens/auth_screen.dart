@@ -153,7 +153,7 @@ final token = await _firebase.getToken();
                     SizedBox(height: 16),
                     Text(
                       textAlign: TextAlign.center,
-                      'Менеджмент складкого предприятия',
+                      'Менеджмент складского предприятия',
                       style: TextStyle(
                         fontSize: 24,
                           
