@@ -84,11 +84,14 @@ final token = await _firebase.getToken();
       var data = json.decode(response.body);
       if (data["newdata"] == "not Got it"){
          _isLoading = false;
+         print(data["newdata"]);
       }
-      await prefs.setString('user_name', _nameController.text);
+      else{      
+        await prefs.setString('user_name', _nameController.text);
       await prefs.setString('user_squad', data['squad']);
       Globals.userName = _nameController.text;
-      Globals.userSquad = data['squad'];
+      Globals.userSquad = data['squad'];}
+
       
     try {
       final response = await http.get(
