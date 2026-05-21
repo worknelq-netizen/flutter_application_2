@@ -101,8 +101,10 @@ final token = await _firebase.getToken();
     } catch (e) {
       print('Ошибка загрузки локальных событий: $e');
     }
-      _showModuleSelection(_nameController.text, data['squad']);
 
+    if (data["newdata"] == "Got it") {
+      _showModuleSelection(_nameController.text, data['squad']);
+    }
 
 
 
