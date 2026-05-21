@@ -105,7 +105,11 @@ final token = await _firebase.getToken();
     if (data["newdata"] == "Got it") {
       _showModuleSelection(_nameController.text, data['squad']);
     }
-
+    else{
+            setState(() {
+        _errorMessage = 'Неверный логин или пароль';
+      });
+    }
 
 
     } catch (e) {
