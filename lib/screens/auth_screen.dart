@@ -82,7 +82,9 @@ final token = await _firebase.getToken();
       ).timeout(const Duration(seconds: 10));
       
       var data = json.decode(response.body);
-      
+      if (data["newdata"] == "not Got it"){
+         _isLoading = false;
+      }
       await prefs.setString('user_name', _nameController.text);
       await prefs.setString('user_squad', data['squad']);
       Globals.userName = _nameController.text;
